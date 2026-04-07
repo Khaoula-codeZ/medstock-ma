@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { wilayas, drugCategories, initialShortages } from '../data/mockData';
+import { supabase } from '../supabaseClient';
+import { wilayas, drugCategories } from '../data/mockData';
 
 export default function ReportShortage() {
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    drugName: '',
+    drug_name: '',
     category: '',
     wilaya: '',
     facility: '',
     severity: '',
-    reportedBy: '',
+    reported_by: '',
     description: '',
     alternatives: '',
   });
@@ -20,19 +22,15 @@ export default function ReportShortage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const stored = localStorage.getItem('medstock_shortages');
-    const existing = stored ? JSON.parse(stored) : initialShortages;
-    const newShortage = {
-      ...form,
-      id: Date.now(),
-      date: new Date().toISOString().split('T')[0],
-      votes: 0,
-    };
-    const updated = [newShortage, ...existing];
-    localStorage.setItem('medstock_shortages', JSON.stringify(updated));
-    setSubmitted(true);
+    setLoading(true);
+    const { error } = await supabase
+      .from('shortages')
+      .insert([{ ...form, votes: 0 }]);
+    setLoading(false);
+    if (!error) setSubmitted(true);
+    else alert('Erreur lors de la soumission. Réessayez.');
   };
 
   if (submitted) {
@@ -45,7 +43,7 @@ export default function ReportShortage() {
         <p className="text-gray-500 mb-6">Merci. Votre signalement aide à cartographier les manques en médicaments au Maroc.</p>
         <div className="flex gap-3 justify-center">
           <button
-            onClick={() => { setSubmitted(false); setForm({ drugName:'',category:'',wilaya:'',facility:'',severity:'',reportedBy:'',description:'',alternatives:'' }); }}
+            onClick={() => { setSubmitted(false); setForm({ drug_name:'', category:'', wilaya:'', facility:'', severity:'', reported_by:'', description:'', alternatives:'' }); }}
             className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
           >
             Signaler une autre
@@ -69,12 +67,11 @@ export default function ReportShortage() {
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nom du médicament *</label>
           <input
-            name="drugName"
-            value={form.drugName}
+            name="drug_name"
+            value={form.drug_name}
             onChange={handleChange}
             required
             placeholder="ex: Trastuzumab, Methylphenidate..."
@@ -142,8 +139,8 @@ export default function ReportShortage() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Vous êtes *</label>
           <select
-            name="reportedBy"
-            value={form.reportedBy}
+            name="reported_by"
+            value={form.reported_by}
             onChange={handleChange}
             required
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -156,7 +153,7 @@ export default function ReportShortage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description de la pénurie *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
           <textarea
             name="description"
             value={form.description}
@@ -181,11 +178,11 @@ export default function ReportShortage() {
 
         <button
           type="submit"
-          className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          disabled={loading}
+          className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          Soumettre le signalement
+          {loading ? 'Envoi en cours...' : 'Soumettre le signalement'}
         </button>
-
       </form>
     </div>
   );

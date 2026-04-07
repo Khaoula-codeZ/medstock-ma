@@ -1,59 +1,62 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { initialShortages, drugCategories } from '../data/mockData';
-
-
+import { supabase } from '../supabaseClient';
+import { drugCategories } from '../data/mockData';
 
 export default function Dashboard() {
   const [shortages, setShortages] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('medstock_shortages');
-    const data = stored ? JSON.parse(stored) : initialShortages;
-    setShortages(data);
+    fetchShortages();
   }, []);
+
+  const fetchShortages = async () => {
+    const { data, error } = await supabase
+      .from('shortages')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error) setShortages(data);
+    setLoading(false);
+  };
 
   const critical = shortages.filter(s => s.severity === 'critique').length;
   const moderate = shortages.filter(s => s.severity === 'modérée').length;
   const total = shortages.length;
   const wilayas = [...new Set(shortages.map(s => s.wilaya))].length;
 
-  // Data for bar chart — by category
   const categoryData = drugCategories.map(cat => ({
     name: cat.split(' ')[0],
     count: shortages.filter(s => s.category === cat).length
   })).filter(d => d.count > 0);
 
-  // Data for pie chart — by severity
   const severityData = [
     { name: 'Critique', value: critical, color: '#ef4444' },
     { name: 'Modérée', value: moderate, color: '#f97316' },
     { name: 'Faible', value: shortages.filter(s => s.severity === 'faible').length, color: '#eab308' },
   ].filter(d => d.value > 0);
 
-  const recentShortages = [...shortages]
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 3);
+  const recentShortages = shortages.slice(0, 3);
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-gray-400">Chargement...</div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
           <p className="text-gray-500 text-sm mt-1">Suivi des pénuries de médicaments au Maroc</p>
         </div>
-        <Link
-          to="/report"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-        >
+        <Link to="/report" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
           + Signaler une pénurie
         </Link>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: 'Total signalements', value: total, color: 'text-gray-900' },
@@ -68,7 +71,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Pénuries par catégorie</h2>
@@ -81,7 +83,6 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Répartition par sévérité</h2>
           <ResponsiveContainer width="100%" height={200}>
@@ -97,7 +98,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent shortages */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-gray-700">Signalements récents</h2>
@@ -112,7 +112,7 @@ export default function Dashboard() {
                   shortage.severity === 'modérée' ? 'bg-orange-400' : 'bg-yellow-400'
                 }`} />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{shortage.drugName}</p>
+                  <p className="text-sm font-medium text-gray-900">{shortage.drug_name}</p>
                   <p className="text-xs text-gray-500">{shortage.wilaya} · {shortage.category}</p>
                 </div>
               </div>
@@ -124,13 +124,12 @@ export default function Dashboard() {
                 }`}>
                   {shortage.severity}
                 </span>
-                <p className="text-xs text-gray-400 mt-1">{shortage.date}</p>
+                <p className="text-xs text-gray-400 mt-1">{shortage.created_at?.split('T')[0]}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
-
     </div>
   );
 }
