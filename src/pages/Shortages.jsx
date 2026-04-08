@@ -16,7 +16,7 @@ function SupplierModal({ shortage, onClose }) {
 
   useEffect(() => {
     fetchSuppliers();
-  }, []);
+  }, [shortage.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchSuppliers = async () => {
     const { data } = await supabase

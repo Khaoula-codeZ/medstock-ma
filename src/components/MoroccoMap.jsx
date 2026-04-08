@@ -62,12 +62,6 @@ function getSeverityColor(count) {
   return '#ef4444';
 }
 
-function getStrokeColor(count) {
-  if (!count || count === 0) return '#93c5fd';
-  if (count <= 2) return '#b45309';
-  if (count <= 5) return '#c2410c';
-  return '#991b1b';
-}
 
 export default function MoroccoMap({ shortages = [] }) {
   const [tooltip, setTooltip] = useState(null);
