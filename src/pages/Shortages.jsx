@@ -2,6 +2,138 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { wilayas, drugCategories } from '../data/mockData';
 
+const WILAYAS = [
+  'Tanger-Tétouan-Al Hoceïma', 'Oriental', 'Fès-Meknès', 'Rabat-Salé-Kénitra',
+  'Béni Mellal-Khénifra', 'Casablanca-Settat', 'Marrakech-Safi',
+  'Drâa-Tafilalet', 'Souss-Massa', 'Guelmim-Oued Noun',
+  'Laâyoune-Sakia El Hamra', 'Dakhla-Oued Ed-Dahab'
+];
+
+function SupplierModal({ shortage, onClose }) {
+  const [form, setForm] = useState({ city: '', contact: '', contact_type: 'email' });
+  const [status, setStatus] = useState('idle');
+  const [suppliers, setSuppliers] = useState([]);
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  const fetchSuppliers = async () => {
+    const { data } = await supabase
+      .from('suppliers')
+      .select('*')
+      .eq('shortage_id', shortage.id)
+      .order('created_at', { ascending: false });
+    if (data) setSuppliers(data);
+  };
+
+  const handleSubmit = async () => {
+    if (!form.city || !form.contact) return;
+    setStatus('loading');
+    const { error } = await supabase.from('suppliers').insert([{
+      shortage_id: shortage.id,
+      drug_name: shortage.drug_name,
+      city: form.city,
+      contact: form.contact,
+      contact_type: form.contact_type,
+    }]);
+    if (error) {
+      setStatus('error');
+    } else {
+      setStatus('success');
+      fetchSuppliers();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div>
+            <h2 className="font-semibold text-gray-900">Disponibilité signalée</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{shortage.drug_name}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+
+        {/* Existing suppliers */}
+        <div className="p-5">
+          {suppliers.length > 0 ? (
+            <div className="mb-5">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                {suppliers.length} pharmacie{suppliers.length > 1 ? 's' : ''} avec ce médicament
+              </p>
+              <div className="space-y-2">
+                {suppliers.map(s => (
+                  <div key={s.id} className="flex items-center justify-between bg-green-50 border border-green-100 rounded-lg px-3 py-2.5">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{s.city}</p>
+                      <p className="text-xs text-gray-500">{s.contact_type === 'email' ? '✉️' : '📞'} {s.contact}</p>
+                    </div>
+                    <span className="text-xs text-green-600 font-medium bg-green-100 px-2 py-0.5 rounded-full">En stock</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mb-5 text-center py-4 text-gray-400 text-sm bg-gray-50 rounded-lg">
+              Aucune pharmacie n'a encore signalé ce médicament
+            </div>
+          )}
+
+          {/* Add supplier form */}
+          {status === 'success' ? (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+              <p className="text-green-700 font-medium text-sm">✓ Merci ! Votre disponibilité a été ajoutée.</p>
+            </div>
+          ) : (
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Vous avez ce médicament ?
+              </p>
+              <div className="space-y-2">
+                <input
+                  placeholder="Ville (ex: Meknès)"
+                  value={form.city}
+                  onChange={e => setForm({ ...form, city: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={form.contact_type}
+                    onChange={e => setForm({ ...form, contact_type: e.target.value })}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                  >
+                    <option value="email">Email</option>
+                    <option value="phone">Téléphone</option>
+                  </select>
+                  <input
+                    placeholder={form.contact_type === 'email' ? 'votre@email.com' : '06XXXXXXXX'}
+                    value={form.contact}
+                    onChange={e => setForm({ ...form, contact: e.target.value })}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+                <button
+                  onClick={handleSubmit}
+                  disabled={status === 'loading' || !form.city || !form.contact}
+                  className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {status === 'loading' ? 'Envoi...' : '✓ Signaler ma disponibilité'}
+                </button>
+                {status === 'error' && (
+                  <p className="text-red-500 text-xs text-center">Erreur, réessayez.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Shortages() {
   const [shortages, setShortages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -9,6 +141,7 @@ export default function Shortages() {
   const [filterWilaya, setFilterWilaya] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('');
+  const [activeModal, setActiveModal] = useState(null);
 
   useEffect(() => {
     fetchShortages();
@@ -54,6 +187,7 @@ export default function Shortages() {
         <p className="text-gray-500 text-sm mt-1">{filtered.length} signalement{filtered.length > 1 ? 's' : ''} trouvé{filtered.length > 1 ? 's' : ''}</p>
       </div>
 
+      {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="grid grid-cols-4 gap-3">
           <input
@@ -91,6 +225,7 @@ export default function Shortages() {
         </div>
       </div>
 
+      {/* Shortage cards */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
           <div className="text-center py-12 text-gray-400">Aucun signalement trouvé</div>
@@ -122,17 +257,34 @@ export default function Shortages() {
                 <p className="text-xs text-gray-500 mb-2">
                   {shortage.wilaya} {shortage.facility && `· ${shortage.facility}`} · Signalé par {shortage.reported_by} · {shortage.created_at?.split('T')[0]}
                 </p>
-                <p className="text-sm text-gray-700 mb-2">{shortage.description}</p>
+                <p className="text-sm text-gray-700 mb-3">{shortage.description}</p>
                 {shortage.alternatives && (
-                  <div className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                  <div className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-3">
                     <span className="font-medium">Alternative:</span> {shortage.alternatives}
                   </div>
                 )}
+
+                {/* CTA button */}
+                <button
+                  onClick={() => setActiveModal(shortage)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg hover:bg-green-100 transition-colors"
+                >
+                  <span>💊</span>
+                  <span>J'ai ce médicament en stock</span>
+                </button>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Modal */}
+      {activeModal && (
+        <SupplierModal
+          shortage={activeModal}
+          onClose={() => setActiveModal(null)}
+        />
+      )}
     </div>
   );
 }

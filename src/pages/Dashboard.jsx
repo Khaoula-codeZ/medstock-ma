@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { supabase } from '../supabaseClient';
 import { drugCategories } from '../data/mockData';
+import MoroccoMap from '../components/MoroccoMap';
+import EmailSignupBanner from '../components/EmailSignupBanner';
 
 export default function Dashboard() {
   const [shortages, setShortages] = useState([]);
@@ -47,6 +49,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
@@ -57,6 +60,10 @@ export default function Dashboard() {
         </Link>
       </div>
 
+      {/* Email signup banner */}
+      <EmailSignupBanner />
+
+      {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: 'Total signalements', value: total, color: 'text-gray-900' },
@@ -71,7 +78,8 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      {/* Charts + Map */}
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Pénuries par catégorie</h2>
           <ResponsiveContainer width="100%" height={200}>
@@ -96,8 +104,11 @@ export default function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
         </div>
+        {/* Morocco Map — takes 1 column */}
+        <MoroccoMap shortages={shortages} />
       </div>
 
+      {/* Recent shortages */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-gray-700">Signalements récents</h2>
