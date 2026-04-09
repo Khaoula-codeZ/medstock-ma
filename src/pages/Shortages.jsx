@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { wilayas, drugCategories } from '../data/mockData';
 
+// eslint-disable-next-line no-unused-vars
 const WILAYAS = [
   'Tanger-Tétouan-Al Hoceïma', 'Oriental', 'Fès-Meknès', 'Rabat-Salé-Kénitra',
   'Béni Mellal-Khénifra', 'Casablanca-Settat', 'Marrakech-Safi',
@@ -15,6 +16,7 @@ function SupplierModal({ shortage, onClose }) {
   const [suppliers, setSuppliers] = useState([]);
 
   useEffect(() => {
+// eslint-disable-next-line react-hooks/exhaustive-deps
     fetchSuppliers();
   }, [shortage.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

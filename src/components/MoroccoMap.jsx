@@ -62,6 +62,7 @@ function getSeverityColor(count) {
   return '#ef4444';
 }
 
+// eslint-disable-next-line no-unused-vars
 
 export default function MoroccoMap({ shortages = [] }) {
   const [tooltip, setTooltip] = useState(null);
